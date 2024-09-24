@@ -18,7 +18,7 @@ class GoogleController extends Controller
      */
     public function redirectToGoogle()
     {
-        // Remove the 'prompt' option to avoid forcing account selection
+        // Redirect to Google authentication
         return Socialite::driver('google')->redirect();
     }
 
@@ -27,48 +27,45 @@ class GoogleController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function handleGoogleCallback()
-    {
-        try {
-            // Retrieve the user from Google without stateless() for session handling
-            $googleUser = Socialite::driver('google')->user();
+   public function handleGoogleCallback()
+{
+    try {
+        \Log::info('Handling Google callback...');
+        $googleUser = Socialite::driver('google')->user();
+        \Log::info('Google User Info:', (array) $googleUser);
 
-            // Find or create the user
-            $existingUser = User::where('google_id', $googleUser->id)->first();
-
-            if ($existingUser) {
-                Auth::login($existingUser);
-            } else {
-                // Create a new user if not found
-                $newUser = User::create([
-                    'name' => $googleUser->name,
-                    'email' => $googleUser->email,
-                    'google_id' => $googleUser->id,
-                    // Ensure role is not assigned at this stage
-                ]);
-
-                Auth::login($newUser);
-            }
-
-            // Set session variable for username
-            session(['username' => Auth::user()->name, 'id' => Auth::id()]); // Save the ID of the logged-in user under the key 'id'
-
-            // Check if the user has a role assigned
-            if (empty(Auth::user()->role)) {
-                return redirect()->route('user.form'); // Redirect to user form if no role
-            }
-
-            // Redirect to the intended page after successful login
-            return redirect()->intended('postjob'); // Adjust the route name as needed
-
-        } catch (InvalidStateException $e) {
-            return redirect()->route('login')->with('error', 'Invalid state. Please try logging in again.');
-        } catch (\Exception $e) {
-            \Log::error('Google login error: ' . $e->getMessage());
-            return redirect()->route('login')->with('error', 'Something went wrong. Please try again.');
+        $existingUser = User::where('google_id', $googleUser->id)->first();
+        if ($existingUser) {
+            Auth::login($existingUser);
+            \Log::info('Existing user logged in:', ['user_id' => $existingUser->id]);
+        } else {
+            // Create new user
+            $newUser = User::create([
+                'name' => $googleUser->name,
+                'email' => $googleUser->email,
+                'google_id' => $googleUser->id,
+            ]);
+            Auth::login($newUser);
+            \Log::info('New user created and logged in:', ['user_id' => $newUser->id]);
         }
-    }
 
+        // Session management
+        session(['username' => Auth::user()->name, 'id' => Auth::id()]);
+
+        // Role check
+        if (empty(Auth::user()->role)) {
+            return redirect()->route('user.form'); 
+        }
+
+        return redirect()->intended('postjob');
+    } catch (InvalidStateException $e) {
+        \Log::error('Invalid state error: ' . $e->getMessage());
+        return redirect()->route('login')->with('error', 'Invalid state. Please try logging in again.');
+    } catch (\Exception $e) {
+        \Log::error('Google login error: ' . $e->getMessage());
+        return redirect()->route('login')->with('error', 'Something went wrong. Please try again.');
+    }
+}
     /**
      * Log the user out and clear session.
      *

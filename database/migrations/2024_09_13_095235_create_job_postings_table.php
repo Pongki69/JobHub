@@ -13,19 +13,21 @@ class CreateJobPostingsTable extends Migration
      */
     public function up()
     {
-        Schema::create('job_posts', function (Blueprint $table) {
-    $table->unsignedBigInteger('user_id'); // Foreign key to users table
-    $table->id();
-    $table->string('job_title');
-    $table->string('company');
-    $table->text('job_description');
-    $table->string('job_type');
-    $table->string('job_location');
-    $table->timestamp('job_deadline');
-    $table->string('image_path')->nullable();
-    $table->foreignId('user_id')->constrained()->onDelete('cascade');
-    $table->string('uploader_name');
-    $table->timestamps();
+        Schema::create('job_postings', function (Blueprint $table) {
+            $table->id(); // Primary key
+            $table->unsignedBigInteger('user_id'); // Foreign key to users table
+            $table->string('uploader_name'); // Added uploader_name
+            $table->string('job_title');
+            $table->text('job_description');
+            $table->string('company_name'); // Adjusted to match your database
+            $table->string('job_location');
+            $table->string('job_type');
+            $table->timestamp('job_deadline'); // Adjusted to match your database
+            $table->string('image_path')->nullable();
+            $table->timestamps();
+
+            // Define the foreign key constraint
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Laravel\Socialite\Two\InvalidStateException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class GoogleController extends Controller
 {
@@ -27,45 +27,64 @@ class GoogleController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-   public function handleGoogleCallback()
+    public function handleGoogleCallback()
 {
     try {
-        \Log::info('Handling Google callback...');
-        $googleUser = Socialite::driver('google')->user();
-        \Log::info('Google User Info:', (array) $googleUser);
+        Log::info('Handling Google callback...');
 
+        // Fetch the user from Google
+        $googleUser = Socialite::driver('google')->stateless()->user();
+        Log::info('Google User Info:', (array) $googleUser);
+
+        // Find user by Google ID
         $existingUser = User::where('google_id', $googleUser->id)->first();
+
         if ($existingUser) {
+            // Log the existing user in
             Auth::login($existingUser);
-            \Log::info('Existing user logged in:', ['user_id' => $existingUser->id]);
+            Log::info('Existing user logged in:', ['user_id' => $existingUser->id]);
         } else {
-            // Create new user
-            $newUser = User::create([
-                'name' => $googleUser->name,
-                'email' => $googleUser->email,
-                'google_id' => $googleUser->id,
-            ]);
-            Auth::login($newUser);
-            \Log::info('New user created and logged in:', ['user_id' => $newUser->id]);
+            // If no user exists, create a new one
+            try {
+                $newUser = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'google_id' => $googleUser->id,
+                    'contact_num' => null,
+                    'birthdate' => null,
+                    'role' => null, // The role is set to null initially
+                ]);
+                Auth::login($newUser);
+                Log::info('New user created and logged in:', ['user_id' => $newUser->id]);
+            } catch (\Exception $e) {
+                Log::error('User creation error: ' . $e->getMessage());
+                return redirect()->route('login')->with('error', 'Could not create user account. Please try again.');
+            }
         }
 
-        // Session management
-        session(['username' => Auth::user()->name, 'id' => Auth::id()]);
+        // Set the session ID
+        session(['id' => Auth::id()]);  // Store the authenticated user's ID in the session
 
-        // Role check
-        if (empty(Auth::user()->role)) {
+        // Check if the user's role is empty, redirect to the user form if so
+        if (is_null(Auth::user()->role)) {
+            Log::info('User missing role, redirecting to form.', ['user_id' => Auth::id()]);
             return redirect()->route('user.form'); 
         }
 
+        // Redirect to post job page if role exists
+        Log::info('User logged in successfully, redirecting to postjob.', ['user_id' => Auth::id()]);
         return redirect()->intended('postjob');
+
     } catch (InvalidStateException $e) {
-        \Log::error('Invalid state error: ' . $e->getMessage());
+        Log::error('Invalid state error: ' . $e->getMessage());
         return redirect()->route('login')->with('error', 'Invalid state. Please try logging in again.');
     } catch (\Exception $e) {
-        \Log::error('Google login error: ' . $e->getMessage());
+        Log::error('Google login error: ' . $e->getMessage());
         return redirect()->route('login')->with('error', 'Something went wrong. Please try again.');
     }
 }
+
+
     /**
      * Log the user out and clear session.
      *

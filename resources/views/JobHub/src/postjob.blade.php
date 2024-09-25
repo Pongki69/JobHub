@@ -264,73 +264,74 @@ use Illuminate\Support\Facades\CSRFToken;
 date_default_timezone_set('UTC'); // Set the default timezone to UTC
 $currentDateTime = new DateTime(); // Create a new DateTime object
 $currentDateTime->setTimezone(new DateTimeZone('Asia/Singapore')); // Adjust to UTC+8
-$currentDateTime->format('Y-m-d H:i:s'); 
-$userId = Auth::id();
-foreach ($jobPostings as $jobPost): ?>
-    <div class="card job-card" id="post-<?php echo $jobPost->id; ?>">
-    <div class="card-body">
-        <div class="post-header">
-            <p><strong>
-            <a href="{{ url('profile/' . $jobPost->user->id) }}" style="text-decoration: none; color: inherit;">
-            <?php echo htmlspecialchars($jobPost->user->name); ?>
-            </a>
-            </strong> - <span class="time-ago" data-time="<?php echo htmlspecialchars($jobPost->created_at); ?>"></span></p>
-            <?php if ($userId == $jobPost->user_id): ?>
-                <div class="dropdown">
-                    <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <li><a href="#" class="dropdown-item" onclick="deleteJobPost(<?php echo $jobPost->id; ?>)">Delete Post</a></li>
-                        <li><a href="#" class="dropdown-item" onclick="hidePost(<?php echo $jobPost->id; ?>)">Hide Post</a></li>
-                    </ul>
+$currentDateTimeFormatted = $currentDateTime->format('Y-m-d H:i:s'); 
+$userId = Auth::id(); // Get the current authenticated user's ID
+?>
+
+<div class="job-postings-container">
+    <?php if ($jobPostings->isEmpty()): ?>
+        <p>No job postings available.</p>
+    <?php else: ?>
+        <?php foreach ($jobPostings as $jobPost): ?>
+            <div class="card job-card" id="post-<?php echo htmlspecialchars($jobPost->id); ?>">
+                <div class="card-body">
+                    <div class="post-header">
+                        <p><strong>
+                            <a href="{{ url('profile/' . $jobPost->user->id) }}" style="text-decoration: none; color: inherit;">
+                                <?php echo htmlspecialchars($jobPost->user->name); ?>
+                            </a>
+                        </strong> - <span class="time-ago" data-time="<?php echo htmlspecialchars($jobPost->created_at); ?>"></span></p>
+                        
+                        <?php if ($userId == $jobPost->user_id): ?>
+                            <div class="dropdown">
+                                <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    <li><a href="#" class="dropdown-item" onclick="deleteJobPost(<?php echo htmlspecialchars($jobPost->id); ?>)">Delete Post</a></li>
+                                    <li><a href="#" class="dropdown-item" onclick="hidePost(<?php echo htmlspecialchars($jobPost->id); ?>)">Hide Post</a></li>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <h5 class="card-title"><?php echo htmlspecialchars($jobPost->job_title); ?></h5>
+                    <p class="company_name"><strong>Company:</strong> <?php echo htmlspecialchars($jobPost->company_name); ?></p>
+                    <p class="job-type"><strong>Job Type:</strong> <?php echo htmlspecialchars($jobPost->job_type); ?></p>
+                    <p class="job-location"><strong>Location:</strong> <?php echo htmlspecialchars($jobPost->job_location); ?></p>
+                    <p class="job-deadline"><strong>Deadline:</strong> <?php echo htmlspecialchars($jobPost->job_deadline); ?></p>
+
+                    <div class="job-description">
+                        <div class="card-text" id="job-description-text">
+                            <?php echo nl2br(trim(htmlspecialchars($jobPost->job_description))); ?>
+                        </div>
+
+                        <?php if (strlen($jobPost->job_description) > 50): ?>
+                            <div class="see-more-container" id="see-more-container">
+                                <span class="see-more" onclick="toggleDescription(this)">See More...</span>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="full-description" id="full-description" style="display:none;">
+                            <?php echo nl2br(trim(htmlspecialchars($jobPost->job_description))); ?>
+                        </div>
+
+                        <div class="see-more-container" id="hide-content" style="display:none;">
+                            <div class="hide-content" onclick="toggleDescription(this)">Hide</div>
+                        </div>
+                    </div>
+
+                    <?php if (!empty($jobPost->image_path)): ?>
+                        <div class="image-container">
+                            <img src="{{ asset('storage/' . $jobPost->image_path) }}" class="centered-image">
+                        </div>
+                    <?php endif; ?>
                 </div>
-            <?php endif; ?>
-        </div>
-        <h5 class="card-title"><?php echo htmlspecialchars($jobPost->job_title); ?></h5>
-        <p class="company_name"><strong>Company:</strong> <?php echo htmlspecialchars($jobPost->company_name); ?></p>
-        <p class="job-type"><strong>Job Type:</strong> <?php echo htmlspecialchars($jobPost->job_type); ?></p>
-        <p class="job-location"><strong>Location:</strong> <?php echo htmlspecialchars($jobPost->job_location); ?></p>
-        <p class="job-deadline"><strong>Deadline:</strong> <?php echo htmlspecialchars($jobPost->job_deadline); ?></p>
-
-
-
-
-
-<div class="job-description">
-    <div class="card-text" id="job-description-text">
-        <?php echo nl2br(trim(htmlspecialchars($jobPost->job_description))); ?>
-    </div>
-
-    <?php if (strlen($jobPost->job_description) > 50): ?>
-        <div class="see-more-container" id="see-more-container">
-            <span class="see-more" onclick="toggleDescription()">See More...</span>
-        </div>
+            </div>
+        <?php endforeach; ?>
     <?php endif; ?>
-
-    <div class="full-description" id="full-description" style="display:none;">
-        <?php echo nl2br(trim(htmlspecialchars($jobPost->job_description))); ?>
-    </div>
-
-    <div class="see-more-container" id="hide-content" style="display:none;">
-        <div class="hide-content" onclick="toggleDescription()">Hide</div>
-    </div>
 </div>
 
-
-
-
-
-
-
-        <?php if (!empty($jobPost->image_path)): ?>
-            <div class="image-container">
-                <img src="{{ asset('storage/' . $jobPost->image_path) }}" class="centered-image">
-            </div>
-        <?php endif; ?>
-        </div>
-    </div>
-<?php endforeach; ?>
 
 
 

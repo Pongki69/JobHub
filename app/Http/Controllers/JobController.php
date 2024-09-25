@@ -104,13 +104,14 @@ class JobController extends Controller
     public function showPostJobForm()
     {
         try {
-            $user = Auth::user();
-            $jobPostings = JobPost::where('user_id', $user->id)->get();
-            return view('JobHub.src.postjob', compact('user', 'jobPostings'));
-        } catch (\Exception $e) {
-            Log::error('Error loading post job form: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to load the job posting form. Please try again.');
-        }
+    $user = Auth::user(); // Get the currently authenticated user
+    $jobPostings = JobPost::all(); // Retrieve all job postings
+
+    return view('JobHub.src.postjob', compact('user', 'jobPostings'));
+} catch (\Exception $e) {
+    Log::error('Error loading job postings: ' . $e->getMessage());
+    return redirect()->back()->with('error', 'Failed to load the job postings. Please try again.');
+}
     }
     
     /**
@@ -235,7 +236,7 @@ class JobController extends Controller
         Log::info('Request data: ', $request->all());
 
         $validatedData = $request->validate([
-            'coverPhoto' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'coverPhoto' => 'required|image|mimes:jpeg,jpg,png,gif,bmp,tiff,svg,webp|max:10240',
         ]);
 
         if ($request->hasFile('coverPhoto')) {
@@ -286,7 +287,7 @@ class JobController extends Controller
         Log::info('Request data: ', $request->all());
 
         $validatedData = $request->validate([
-            'profilePic' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'profilePic' => 'required|image|mimes:jpeg,jpg,png,gif,bmp,tiff,svg,webp|max:10240',
         ]);
 
         if ($request->hasFile('profilePic')) {

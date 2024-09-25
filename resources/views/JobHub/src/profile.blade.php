@@ -36,23 +36,7 @@ use Illuminate\Support\Facades\CSRFToken;
             border-radius: 5px;
             border: 1px solid #e0e0e0;
         }
-        .cover-photo-overlay {
-            display: none;
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            border-radius: 50%;
-            padding: 5px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            z-index: 1;
-        }
+
         .profile-pic {
             width: 250px;
             height: 250px;
@@ -65,23 +49,50 @@ use Illuminate\Support\Facades\CSRFToken;
             position: relative;
             z-index: 2;
         }
-        .profile-pic-overlay {
-             display: none;
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            border-radius: 50%;
-            padding: 5px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            z-index: 3;
-        }
+        
+ .cover-photo-overlay {
+    display: none; /* Initially hidden, change with JS or hover */
+    position: absolute;
+    bottom: 10px; /* Distance from the bottom */
+    right: 10px; /* Distance from the right */
+    background: rgba(0, 0, 0, 0.5); /* Background color */
+    color: #fff; /* Icon color */
+    border-radius: 50%; /* Circular shape */
+    width: 40px; /* Fixed width of the circular overlay */
+    height: 40px; /* Fixed height of the circular overlay */
+    cursor: pointer;
+    display: flex; /* Enables flexbox for centering */
+    align-items: center; /* Center vertically */
+    justify-content: center; /* Center horizontally */
+    z-index: 1; /* Stacking order */
+}
+
+.profile-pic-overlay {
+    display: none; /* Initially hidden, change with JS or hover */
+    position: absolute;
+    bottom: 10px; /* Adjust as needed */
+    right: 10px; /* Adjust as needed */
+    background: rgba(0, 0, 0, 0.5); /* Background color */
+    color: #fff; /* Icon color */
+    border-radius: 50%; /* Circular shape */
+    width: 40px; /* Fixed width of the circular overlay */
+    height: 40px; /* Fixed height of the circular overlay */
+    cursor: pointer;
+    display: flex; /* Enables flexbox for centering */
+    align-items: center; /* Center vertically */
+    justify-content: center; /* Center horizontally */
+    z-index: 3; /* Stacking order */
+}
+
+.cover-photo-overlay i,
+.profile-pic-overlay i {
+    font-size: 20px; /* Adjust icon size as needed */
+    line-height: 1; /* Ensure no extra space around the icon */
+    margin: 0; /* Remove any default margin */
+}
+
+
+
         .profile-info {
             text-align: center;
             margin-top: 10px;
@@ -313,7 +324,7 @@ use Illuminate\Support\Facades\CSRFToken;
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url('profile/' . $user->id) }}" style="font-size: 1.25rem; color: #ffffff;">Profile</a>
+                       <a class="nav-link" href="{{ url('profile/' . session('id')) }}" style="font-size: 1.25rem; color: #ffffff;">Profile</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url('postjob') }}" style="font-size: 1.25rem; color: #ffffff;">Post a Job</a>
@@ -329,7 +340,7 @@ use Illuminate\Support\Facades\CSRFToken;
 <div class="profile-header">
 
 
-    <form id="uploadCoverPhotoForm" method="post" enctype="multipart/form-data" action="<?php echo url('upload-cover-photo'); ?>">
+<form id="uploadCoverPhotoForm" method="post" enctype="multipart/form-data" action="<?php echo url('upload-cover-photo'); ?>">
     <input type="hidden" name="_token" value="<?php echo csrf_token(); ?>">
 
     <div class="cover-photo" id="coverPhoto" 
@@ -345,18 +356,23 @@ use Illuminate\Support\Facades\CSRFToken;
     <input type="file" id="coverPhotoInput" name="coverPhoto" style="display: none;" accept="image/*" onchange="document.getElementById('uploadCoverPhotoForm').submit();">
 </form>
 
-
-
-
- <form id="uploadProfilePicForm" method="post" enctype="multipart/form-data" action="<?php echo url('upload-profile-pic'); ?>">
+<form id="uploadProfilePicForm" method="post" enctype="multipart/form-data" action="<?php echo url('upload-profile-pic'); ?>">
     <input type="hidden" name="_token" value="<?php echo csrf_token(); ?>">
-   <div class="profile-pic" id="profilePic" style="background-image: url('<?php echo $user->profile_pic ? asset($user->profile_pic) : asset('job_images/default/white.jpg'); ?>');" data-toggle="modal" data-target="#profilePicModal" onclick="setProfilePicModal();">
-    <div class="profile-pic-overlay" id="profileCameraIcon">
-        <i class="fas fa-camera"></i>
+    
+    <div class="profile-pic" id="profilePic" 
+         style="background-image: url('<?php echo $user->profile_pic ? asset($user->profile_pic) : asset('job_images/default/white.jpg'); ?>');" 
+         data-toggle="modal" data-target="#profilePicModal" 
+         onclick="setProfilePicModal();">
+        <div class="profile-pic-overlay" id="profileCameraIcon">
+            <i class="fas fa-camera"></i>
+        </div>
     </div>
-</div>
+    
     <input type="file" id="profilePicInput" name="profilePic" style="display: none;" accept="image/*" onchange="document.getElementById('uploadProfilePicForm').submit();">
 </form>
+
+
+
 
 
   <div class="profile-info">
@@ -846,61 +862,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-
-// Hide Change profile and cover photo 
 document.addEventListener('DOMContentLoaded', function() {
-        // Replace these values with your actual session user ID and current user ID
-        const sessionUserId = @json(session('user_id')); // Get session ID
-        const currentUserId = @json(Auth::user()->id); // Get the current user ID
+    // Get session and current user IDs
+    const sessionUserId = @json(session('id')); // Adjust if your session key is different
+    const currentUserId = @json(Auth::user()->id);
 
-        const profileCameraIcon = document.getElementById('profileCameraIcon');
-        const coverCameraIcon = document.getElementById('coverCameraIcon');
+    const profileCameraIcon = document.getElementById('profileCameraIcon');
+    const coverCameraIcon = document.getElementById('coverCameraIcon');
 
-        // Function to show/hide icons based on user ID match
-        function toggleIcons() {
-            if (sessionUserId === currentUserId) {
-                // Show icons if IDs match
-                profileCameraIcon.style.display = 'block'; // or use '' to inherit from CSS
-                coverCameraIcon.style.display = 'block'; // or use '' to inherit from CSS
-            } else {
-                // Hide icons if IDs do not match
-                profileCameraIcon.style.display = 'none';
-                coverCameraIcon.style.display = 'none';
-            }
+    // Function to show/hide icons based on user ID match
+    function toggleIcons() {
+        const isSameUser = sessionUserId === currentUserId;
+
+        // Show or hide icons based on user ID match
+        if (profileCameraIcon) {
+            profileCameraIcon.style.display = isSameUser ? 'flex' : 'none'; // Use 'flex' for proper centering
         }
-
-        // Call the function to set the visibility
-        toggleIcons();
-    });
-
-
-document.addEventListener('DOMContentLoaded', function() {
-        // Get the user ID stored in the session and the ID of the currently authenticated user.
-        const sessionUserId = @json(session('user_id')); // Replace with actual session user ID from Laravel.
-        const currentUserId = @json(Auth::user()->id); // Replace with the current user ID from Laravel.
-
-        // Select the DOM elements for the profile and cover camera icons.
-        const profileCameraIcon = document.getElementById('profileCameraIcon');
-        const coverCameraIcon = document.getElementById('coverCameraIcon');
-
-        // Function to show or hide the camera icons based on user ID match.
-        function toggleIcons() {
-            // Check if the session user ID matches the current user ID.
-            if (sessionUserId === currentUserId) {
-                // If they match, show the icons by setting their display style to 'block'.
-                profileCameraIcon.style.display = 'block'; // Show profile camera icon.
-                coverCameraIcon.style.display = 'block'; // Show cover photo camera icon.
-            } else {
-                // If they do not match, hide the icons by setting their display style to 'none'.
-                profileCameraIcon.style.display = 'none'; // Hide profile camera icon.
-                coverCameraIcon.style.display = 'none'; // Hide cover photo camera icon.
-            }
+        if (coverCameraIcon) {
+            coverCameraIcon.style.display = isSameUser ? 'flex' : 'none'; // Use 'flex' for proper centering
         }
+    }
 
-        // Call the function to set the visibility of the icons based on the user ID check.
-        toggleIcons();
-    });
-   
+    // Call the function to set the visibility
+    toggleIcons();
+});
+
 
 
     </script>
